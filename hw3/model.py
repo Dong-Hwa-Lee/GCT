@@ -106,10 +106,13 @@ class Transcriber_RNN(nn.Module):
         # TODO: Question 1
         mel = self.melspectrogram(audio)
         
-        x = self.frame_lstm(mel)  # (B, T, C)
+        h0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
+        c0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
+        
+        x = self.frame_lstm(mel, (h0, c0))  # (B, T, C)
         frame_out = self.frame_fc(x)
 
-        y = self.onset_lstm(mel)  # (B, T, C)
+        y = self.onset_lstm(mel, (h0, c0))  # (B, T, C)
         onset_out = self.onset_fc(y)
         
         return frame_out, onset_out
@@ -133,12 +136,15 @@ class Transcriber_CRNN(nn.Module):
         # TODO: Question 2
         mel = self.melspectrogram(audio)
         
+        h0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
+        c0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
+        
         x1 = self.frame_conv_stack(mel)  # (B, T, C)
-        x2 = self.frame_lstm(x1)  # (B, T, C)
+        x2 = self.frame_lstm(x1, (h0, c0))  # (B, T, C)
         frame_out = self.frame_fc(x2)
 
         y1 = self.onset_conv_stack(mel)  # (B, T, C)
-        y2 = self.onset_lstm(y1)  # (B, T, C)
+        y2 = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
         onset_out = self.onset_fc(y2)
         
         return frame_out, onset_out
@@ -164,9 +170,12 @@ class Transcriber_ONF(nn.Module):
         # TODO: Question 3
         mel = self.melspectrogram(audio)
         
+        h0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
+        c0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
+        
         # Onset Stack
         y1 = self.onset_conv_stack(mel)  # (B, T, C)
-        y2 = self.onset_lstm(y1)  # (B, T, C)
+        y2 = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
         onset_logits = self.onset_fc(y2)
         
         # Frame Stack
@@ -174,7 +183,9 @@ class Transcriber_ONF(nn.Module):
         temp_logits = self.frame_fc(x1)
         concatenated_logits = torch.cat([onset_logits.detach(), temp_logits], dim=-1)
         # (Combined Stack)
-        x2 = self.combined_lstm(concatenated_logits)  # (B, T, C)
+        h0 = torch.zeros(4, concatenated_logits.size(0), 88, device=mel.device)
+        c0 = torch.zeros(4, concatenated_logits.size(0), 88, device=mel.device)
+        x2 = self.combined_lstm(concatenated_logits, (h0, c0))  # (B, T, C)
         frame_logits = self.combined_fc(x2)
         
         onset_out = nn.Sigmoid(onset_logits)
