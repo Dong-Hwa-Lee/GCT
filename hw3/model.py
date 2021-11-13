@@ -109,10 +109,10 @@ class Transcriber_RNN(nn.Module):
         h0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
         c0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
         
-        x = self.frame_lstm(mel, (h0, c0))  # (B, T, C)
+        x, _ = self.frame_lstm(mel, (h0, c0))  # (B, T, C)
         frame_out = self.frame_fc(x)
 
-        y = self.onset_lstm(mel, (h0, c0))  # (B, T, C)
+        y, _ = self.onset_lstm(mel, (h0, c0))  # (B, T, C)
         onset_out = self.onset_fc(y)
         
         return frame_out, onset_out
@@ -139,13 +139,13 @@ class Transcriber_CRNN(nn.Module):
         x1 = self.frame_conv_stack(mel)  # (B, T, C)
         h0 = torch.zeros(4, x1.size(0), 88, device=mel.device)
         c0 = torch.zeros(4, x1.size(0), 88, device=mel.device)
-        x2 = self.frame_lstm(x1, (h0, c0))  # (B, T, C)
+        x2, _ = self.frame_lstm(x1, (h0, c0))  # (B, T, C)
         frame_out = self.frame_fc(x2)
 
         y1 = self.onset_conv_stack(mel)  # (B, T, C)
         h0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
         c0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
-        y2 = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
+        y2, _ = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
         onset_out = self.onset_fc(y2)
         
         return frame_out, onset_out
@@ -175,7 +175,7 @@ class Transcriber_ONF(nn.Module):
         y1 = self.onset_conv_stack(mel)  # (B, T, C)
         h0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
         c0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
-        y2 = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
+        y2, _ = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
         onset_logits = self.onset_fc(y2)
         
         # Frame Stack
@@ -185,7 +185,7 @@ class Transcriber_ONF(nn.Module):
         # (Combined Stack)
         h0 = torch.zeros(4, concatenated_logits.size(0), 88, device=mel.device)
         c0 = torch.zeros(4, concatenated_logits.size(0), 88, device=mel.device)
-        x2 = self.combined_lstm(concatenated_logits, (h0, c0))  # (B, T, C)
+        x2, _ = self.combined_lstm(concatenated_logits, (h0, c0))  # (B, T, C)
         frame_logits = self.combined_fc(x2)
         
         #onset_out = nn.Sigmoid(onset_logits) # I dont know why this do not pass testing
