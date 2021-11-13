@@ -177,11 +177,12 @@ class Transcriber_ONF(nn.Module):
         c0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
         y2, _ = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
         onset_logits = self.onset_fc(y2)
+        temp_onset_logits = onset_logits.clone().detach()
         
         # Frame Stack
         x1 = self.frame_conv_stack(mel)  # (B, T, C)
-        temp_logits = self.frame_fc(x1)
-        concatenated_logits = torch.cat([onset_logits.detach(), temp_logits], dim=-1)
+        temp_frame_logits = self.frame_fc(x1)
+        concatenated_logits = torch.cat([temp_onset_logits, temp_frame_logits], dim=-1)
         # (Combined Stack)
         h0 = torch.zeros(4, concatenated_logits.size(0), 88, device=mel.device)
         c0 = torch.zeros(4, concatenated_logits.size(0), 88, device=mel.device)
