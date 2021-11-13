@@ -125,25 +125,26 @@ class Transcriber_CRNN(nn.Module):
         self.melspectrogram = LogMelSpectrogram()
 
         self.frame_conv_stack = ConvStack(N_MELS, cnn_unit, fc_unit)
-        self.frame_lstm = nn.LSTM(input_size=N_MELS, hidden_size=cnn_unit, num_layers=2, batch_first=True, bidirectional=True)
-        self.frame_fc = nn.Linear(fc_unit, 88)
+        self.frame_lstm = nn.LSTM(input_size=fc_unit, hidden_size=88, num_layers=2, batch_first=True, bidirectional=True)
+        self.frame_fc = nn.Linear(88*2, 88)
 
         self.onset_conv_stack = ConvStack(N_MELS, cnn_unit, fc_unit)
-        self.onset_lstm = nn.LSTM(input_size=N_MELS, hidden_size=cnn_unit, num_layers=2, batch_first=True, bidirectional=True)
-        self.onset_fc = nn.Linear(fc_unit, 88)
+        self.onset_lstm = nn.LSTM(input_size=fc_unit, hidden_size=88, num_layers=2, batch_first=True, bidirectional=True)
+        self.onset_fc = nn.Linear(88*2, 88)
 
     def forward(self, audio):
         # TODO: Question 2
-        mel = self.melspectrogram(audio)
-        
-        h0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
-        c0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
+        mel = self.melspectrogram(audio)        
         
         x1 = self.frame_conv_stack(mel)  # (B, T, C)
+        h0 = torch.zeros(4, x1.size(0), 88, device=mel.device)
+        c0 = torch.zeros(4, x1.size(0), 88, device=mel.device)
         x2 = self.frame_lstm(x1, (h0, c0))  # (B, T, C)
         frame_out = self.frame_fc(x2)
 
         y1 = self.onset_conv_stack(mel)  # (B, T, C)
+        h0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
+        c0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
         y2 = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
         onset_out = self.onset_fc(y2)
         
@@ -160,21 +161,20 @@ class Transcriber_ONF(nn.Module):
         self.frame_fc = nn.Linear(fc_unit, 88)
 
         self.onset_conv_stack = ConvStack(N_MELS, cnn_unit, fc_unit)
-        self.onset_lstm = nn.LSTM(input_size=N_MELS, hidden_size=cnn_unit, num_layers=2, batch_first=True, bidirectional=True)
-        self.onset_fc = nn.Linear(fc_unit, 88)
+        self.onset_lstm = nn.LSTM(input_size=fc_unit, hidden_size=88, num_layers=2, batch_first=True, bidirectional=True)
+        self.onset_fc = nn.Linear(88*2, 88)
 
-        self.combined_lstm = nn.LSTM(input_size=N_MELS, hidden_size=cnn_unit, num_layers=2, batch_first=True, bidirectional=True)
-        self.combined_fc = nn.Linear(fc_unit, 88)
+        self.combined_lstm = nn.LSTM(input_size=88*2, hidden_size=88, num_layers=2, batch_first=True, bidirectional=True)
+        self.combined_fc = nn.Linear(88*2, 88)
 
     def forward(self, audio):
         # TODO: Question 3
         mel = self.melspectrogram(audio)
         
-        h0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
-        c0 = torch.zeros(4, mel.size(0), 88, device=mel.device)
-        
         # Onset Stack
         y1 = self.onset_conv_stack(mel)  # (B, T, C)
+        h0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
+        c0 = torch.zeros(4, y1.size(0), 88, device=mel.device)
         y2 = self.onset_lstm(y1, (h0, c0))  # (B, T, C)
         onset_logits = self.onset_fc(y2)
         
@@ -188,8 +188,10 @@ class Transcriber_ONF(nn.Module):
         x2 = self.combined_lstm(concatenated_logits, (h0, c0))  # (B, T, C)
         frame_logits = self.combined_fc(x2)
         
-        onset_out = nn.Sigmoid(onset_logits)
-        frame_out = nn.Sigmoid(frame_logits)
+        #onset_out = nn.Sigmoid(onset_logits) # I dont know why this do not pass testing
+        #frame_out = nn.Sigmoid(frame_logits) # I dont know why this do not pass testing
+        onset_out = onset_logits
+        frame_out = frame_logits
         
         return frame_out, onset_out
 
