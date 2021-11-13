@@ -96,11 +96,11 @@ class Transcriber_RNN(nn.Module):
         # Notice: Changing the initialization order may fail the tests.
         self.melspectrogram = LogMelSpectrogram()
 
-        self.frame_lstm = nn.LSTM(input_size=N_MELS, hidden_size=cnn_unit, num_layers=2, batch_first=True, bidirectional=True)
-        self.frame_fc = nn.Linear(fc_unit, 88)
+        self.frame_lstm = nn.LSTM(input_size=N_MELS, hidden_size=88, num_layers=2, bidirectional=True)
+        self.frame_fc = nn.Linear(88*2, 88)
 
-        self.onset_lstm = nn.LSTM(input_size=N_MELS, hidden_size=cnn_unit, num_layers=2, batch_first=True, bidirectional=True)
-        self.onset_fc = nn.Linear(fc_unit, 88)
+        self.onset_lstm = nn.LSTM(input_size=N_MELS, hidden_size=88, num_layers=2, bidirectional=True)
+        self.onset_fc = nn.Linear(88*2, 88)
 
     def forward(self, audio):
         # TODO: Question 1
